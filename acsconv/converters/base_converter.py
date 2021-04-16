@@ -23,7 +23,14 @@ class BaseConverter(object):
         for child_name, child in module.named_children(): 
             if isinstance(child, nn.Conv2d):
                 arguments = nn.Conv2d.__init__.__code__.co_varnames[1:]
-                kwargs = {k: getattr(child, k) for k in arguments}
+                
+                # Original code compatible with PyTorch 1.0
+                #kwargs = {k: getattr(child, k) if k[-1] != '_' for k in arguments} 
+                
+                # New code compatible with PyTorch 1.8.1 & torchvision 0.9.1 as of Apr 16, 2021
+                kwargs = dict((k, getattr(child, k)) if k[-1] != '_' else (None, None) for k in arguments) 
+                del kwargs[None]
+                
                 kwargs = self.convert_conv_kwargs(kwargs)
                 setattr(module, child_name, self.__class__.target_conv(**kwargs))
             elif hasattr(nn, child.__class__.__name__) and \
